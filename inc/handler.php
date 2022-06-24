@@ -63,11 +63,14 @@ fetch('https://fakestoreapi.com/products/')
 <?php 
 // if (isset($_SESSION['isInsert']) or $_SESSION['isInsert'] == false)
 
-$json = file_get_contents('https://fakestoreapi.com/products/');
-$data = json_decode($json,true);
+function get_data($url) {
+  $json = file_get_contents($url);
+  $data = json_decode($json,true);
+  return $data;
+}
 
-// unset($_SESSION['isInsert']);
-  if (!isset($_SESSION['isInsert']) or $_SESSION['isInsert'] != true) {
+function insert_categories_table() {
+  global $data, $con;
   $categories = [];
   foreach ($data as $product) {
     $categories[] = str_replace("'","",$product['category']);
@@ -75,12 +78,17 @@ $data = json_decode($json,true);
   $categories = array_unique($categories);
   $query = "INSERT INTO `categories` (name) VALUES ('" . implode("'), ('", $categories) . "')";
   mysqli_query($con,$query);
+}
 
-  
+function select_categories() {
+  global $con;
   $query = "SELECT * FROM `categories`";
   $res = mysqli_query($con,$query);
   $cats = mysqli_fetch_all($res,MYSQLI_ASSOC);
-
+  return $cats;
+} 
+function insert_products_table() {
+  global $con, $data,$cats;
   foreach ($data as $product) {
     $product_category = str_replace("'","",$product['category']);
     $ind = array_search($product_category,array_column($cats,'name'));
@@ -95,9 +103,18 @@ $data = json_decode($json,true);
     $query = "INSERT INTO `products` SET title='{$title}', price={$price}, description='{$description}', category_id={$category_id}, image='{$image}', rate={$rate}, count={$count}";
     mysqli_query($con,$query);
   }
+}
+
+$data = get_data('https://fakestoreapi.com/products/');
+if (!isset($_SESSION['isInsert']) or $_SESSION['isInsert'] != true) {
+    insert_categories_table();  
+    $cats = select_categories();
+    insert_products_table();
     $_SESSION['isInsert'] = true;
   } 
   
+
+
   // var_dump($_SESSION['isInsert']);
   // $query = 'INSERT INTO `categories` (name) VALUES ';
   // foreach ($categories as $i => $category) {
